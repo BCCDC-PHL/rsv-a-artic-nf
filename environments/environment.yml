@@ -1,8 +1,7 @@
-name: artic-mpxv-illumina
+name: artic-rsv-a-illumina
 channels:
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
   - python=3
   - biopython=1.74

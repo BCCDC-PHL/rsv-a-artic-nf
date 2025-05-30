@@ -6,7 +6,7 @@ nextflow.enable.dsl = 2
 include {printHelp} from './modules/help.nf'
 
 // import subworkflows
-include {mpxvIllumina} from './workflows/illuminaMpxv.nf'
+include {rsvaIllumina} from './workflows/illuminaRSVA.nf'
 
 if (params.help){
     printHelp()
@@ -51,6 +51,6 @@ workflow {
 	          .set{ ch_filePairs }
 
   main:
-    mpxvIllumina(ch_filePairs)
+    rsvaIllumina(ch_filePairs)
      
 }
