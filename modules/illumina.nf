@@ -96,6 +96,7 @@ process readTrimming {
     printf -- "    - tool_name: trim_galore\\n"                                                                                >> ${sampleName}_readTrimming_provenance.yml
     printf -- "      tool_version: \$(trim_galore --version | sed -n '4p' | sed 's/version //' | tr -d '[:space:]')\\n"        >> ${sampleName}_readTrimming_provenance.yml
 
+
     if [[ \$(gunzip -c ${forward} | head -n4 | wc -l) -eq 0 ]]; then
       cp ${forward} ${sampleName}_hostfiltered_val_1.fq.gz
       cp ${reverse} ${sampleName}_hostfiltered_val_2.fq.gz
@@ -131,6 +132,7 @@ process filterResidualAdapters {
     printf -- "  tools:\\n"                                                                               >> ${sampleName}_filterResidualAdapters_provenance.yml
     printf -- "    - tool_name: filter_residual_adapters.py\\n"                                           >> ${sampleName}_filterResidualAdapters_provenance.yml
     printf -- "      sha256: \$(shasum -a 256 ${projectDir}/bin/filter_residual_adapters.py | cut -d ' ' -f 1)\\n"      >> ${sampleName}_filterResidualAdapters_provenance.yml
+
 
     filter_residual_adapters.py --input_R1 $forward --input_R2 $reverse
     """
@@ -177,7 +179,7 @@ process readMapping {
     tuple val(sampleName), path("${sampleName}.sorted.bam"), path("${sampleName}.sorted.bam.bai"), emit: sorted_bam
 
     script:
-    """    
+    """
     bwa mem -t ${task.cpus} ${ref} ${forward} ${reverse} | \
     samtools sort -o ${sampleName}.sorted.bam
     samtools index ${sampleName}.sorted.bam
@@ -279,6 +281,7 @@ process callConsensusFreebayes {
     printf -- "        - parameter: norm\\n"                                                       >> ${sampleName}_callConsensusFreebayes_provenance.yml
     printf -- "        - parameter: consensus\\n"                                                  >> ${sampleName}_callConsensusFreebayes_provenance.yml
 
+    
     # the sed is to fix the header until a release is made with this fix
     # https://github.com/freebayes/freebayes/pull/549
     freebayes -p 1 \

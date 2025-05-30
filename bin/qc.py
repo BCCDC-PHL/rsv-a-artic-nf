@@ -8,6 +8,7 @@ import subprocess
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import statistics
 
 from Bio import SeqIO
 from matplotlib.patches import Rectangle
@@ -36,7 +37,7 @@ def make_qc_plot(depth_pos, n_density, ref_length, samplename, min_depth, amplic
     
     n_df = pd.DataFrame( { 'position' : [pos[0] for pos in n_density], 'n_density' : [dens[1] for dens in n_density] } )
 
-    fig, (ax_depth, ax_amplicons) = plt.subplots(2, gridspec_kw={'height_ratios': [5, 1]})
+    fig, (ax_depth, ax_amplicons) = plt.subplots(2, gridspec_kw={'height_ratios': [5, 1]}, sharex=True)
     fig.set_size_inches(width_inches, height_inches)
 
     ax_n_density = ax_depth.twinx()
@@ -53,7 +54,7 @@ def make_qc_plot(depth_pos, n_density, ref_length, samplename, min_depth, amplic
     ax_n_density.plot(n_df['n_density'], color = 'r', linewidth=0.5)
     ax_n_density.set_ylim(top=1, bottom=0)
 
-    ax_amplicons.get_shared_x_axes().join(ax_amplicons, ax_depth)
+    
     ax_amplicons.plot()
     
     amplicon_pool_colors = {
@@ -71,7 +72,7 @@ def make_qc_plot(depth_pos, n_density, ref_length, samplename, min_depth, amplic
 
     ax_amplicons.set_ylim(top=4, bottom=0)
     ax_amplicons.yaxis.set_visible(False)
-    ax_amplicons.xaxis.set_visible(False)
+    
 
     plt.xlim(left=0)
     plt.title(samplename)
@@ -154,6 +155,15 @@ def get_covered_pos(pos_depth, min_depth):
     
     return counter
 
+def get_amplicon_covered_pos(pos_depth, min_depth, lowest_amplicon_start, highest_amplicon_end):
+    counter = 0
+    amplicon_length = highest_amplicon_end - lowest_amplicon_start
+    for contig, pos, depth in pos_depth:
+        pos_int = int(pos)
+        if lowest_amplicon_start <= pos_int <= highest_amplicon_end and int(depth) >= min_depth:
+            counter += 1
+    return counter, amplicon_length
+
 def get_N_positions(fasta):
     n_pos =  [i for i, letter in enumerate(fasta.seq.lower()) if letter == 'n']
 
@@ -201,11 +211,32 @@ def get_num_reads(bamfile):
     what = shlex.split(command)
 
     return subprocess.check_output(what).decode().strip()
+
+
+
+def get_median_depth(depth_pos):
+    if len(depth_pos) > 0:
+        depth_values = [int(pos[2]) for pos in depth_pos]
+        return statistics.median(depth_values)
+    else:
+        return 0
+    
+def calculate_amplicon_median_depth(depth_pos, amplicon_start, amplicon_end):
+    if len(depth_pos) > 0:
+        depths_within_amplicon = [int(pos[2]) for pos in depth_pos if amplicon_start <= int(pos[1]) <= amplicon_end]
+        return statistics.median(depths_within_amplicon) 
+    else:
+        return 0
     
 def main(args):
     primers = read_primers(args.primer_bed, args.primer_pairs)
     amplicons = primers_to_amplicons(primers)
-    
+
+    # Get region covered by amplicons
+    lowest_amplicon_start = min(primers.values(), key=lambda x: x['start'])['start']
+    highest_amplicon_end = max(primers.values(), key=lambda x: x['end'])['end']
+
+
     ## Depth calcs
     ref_length = get_ref_length(args.ref)
     depth_pos = read_depth_file(args.bam)
@@ -213,6 +244,12 @@ def main(args):
     depth_covered_bases = get_covered_pos(depth_pos, args.min_depth)
 
     pct_covered_bases = depth_covered_bases / ref_length * 100
+
+    depth_coverage = get_median_depth(depth_pos)
+
+    depth_amplicon_covered_bases, amplicon_length = get_amplicon_covered_pos(depth_pos, args.min_depth, lowest_amplicon_start, highest_amplicon_end)
+
+    pct_amplicon_covered_bases =  depth_amplicon_covered_bases /  amplicon_length * 100
 
     ## Number of aligned reads calculaton
     num_reads = get_num_reads(args.bam)
@@ -229,14 +266,27 @@ def main(args):
         pct_N_bases = get_pct_N_bases(fasta)
         largest_N_gap = get_largest_N_gap(fasta)
 
+    amplicon_average_depths = {}
+    for amplicon_num, amplicon_info in amplicons.items():
+        amplicon_start = amplicon_info['start']
+        amplicon_end = amplicon_info['end']
+        average_depth = calculate_amplicon_median_depth(depth_pos, amplicon_start, amplicon_end)
+        amplicon_average_depths[amplicon_num] = average_depth
+
 
     qc_line = { 'sample_name' : args.sample,
                 'pct_N_bases' : "{:.2f}".format(pct_N_bases),
           'pct_covered_bases' : "{:.2f}".format(pct_covered_bases), 
+          'pct_amplicon_covered_bases': "{:.2f}".format(pct_amplicon_covered_bases),
            'longest_no_N_run' : largest_N_gap,
           'num_aligned_reads' : num_reads,
+          'median_depth_coverage' : depth_coverage,
                        'fasta': args.fasta, 
                         'bam' : args.bam}
+    
+    # Add amplicon average depths to qc_line
+    for amplicon_num, avg_depth in amplicon_average_depths.items():
+        qc_line[f'amplicon_{amplicon_num}_median_depth'] = avg_depth
 
 
     with open(args.outfile, 'w') as csvfile:

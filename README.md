@@ -1,11 +1,14 @@
-# mpxv-artic-nf
-A Nextflow pipeline for running the ARTIC network's fieldbioinformatics tools (https://github.com/artic-network/fieldbioinformatics), with a focus on monkeypox virus (mpxv).
+# rsv-a-artic-nf
+A Nextflow pipeline for running the ARTIC network's fieldbioinformatics tools (https://github.com/artic-network/fieldbioinformatics), with a focus on respiratory syncytial virus A (RSV-A).
 
 ![push master](https://github.com/BCCDC-PHL/mpxv-artic-nf/actions/workflows/push_master.yml/badge.svg)
 
+
+**IN DEVELOPMENT**
+
 #### Introduction
 
-This pipeline is based on the [BCCDC-PHL/ncov2019-artic-nf](https://github.com/BCCDC-PHL/ncov2019-artic-nf) pipeline, which is a fork of the [connor-lab/ncov2019-artic-nf](https://github.com/connor-lab/ncov2019-artic-nf) pipeline. It also includes freebayes-based variant calling and additional QC filters, initially introduced in [jts/ncov2019-artic-nf](https://github.com/jts/ncov2019-artic-nf). It has been modified to support analysis of monkeypox virus.
+This pipeline is a modified version of the [BCCDC-PHL/mpxv-artic-nf](https://github.com/BCCDC-PHL/mpxv-artic-nf) pipeline to support the analysis of respiratory syncytial virus A. This was based on the [BCCDC-PHL/ncov2019-artic-nf](https://github.com/BCCDC-PHL/ncov2019-artic-nf) pipeline, which is a fork of the [connor-lab/ncov2019-artic-nf](https://github.com/connor-lab/ncov2019-artic-nf) pipeline. 
 
 ```mermaid
 flowchart TD
@@ -41,12 +44,12 @@ flowchart TD
 #### Quick-start
 
 ```
-nextflow run BCCDC-PHL/mpxv-artic-nf -profile conda \
+nextflow run BCCDC-PHL/rsv-a-artic-nf -profile conda \
   --prefix "output_file_prefix" \
   --bed /path/to/primers.bed \
   --ref /path/to/ref.fa \
   --primer_pairs_tsv /path/to/primer_pairs_tsv \
-  --composite_ref /path/to/human_and_mpxv_composite_ref \
+  --composite_ref /path/to/human_and_rsv-a_composite_ref \
   --directory /path/to/reads \
   --outdir /path/to/outputs
 ```
@@ -83,6 +86,7 @@ A script to do some basic QC is provided in `bin/qc.py`. It measures the % of re
 
 #### Output
 A subdirectory for each process in the workflow is created in `--outdir`. A `nml_upload` subdirectory containing dehosted fastq files and consensus sequences is included. 
+
 
 #### Provenance
 In the output directory for each sample, a provenance file will be written with the following format:
@@ -162,8 +166,8 @@ In the output directory for each sample, a provenance file will be written with 
 - input_filename: sample_R2.fastq.gz
   file_type: fastq-input
   sha256: 0693d7e519b2e2a294d9d4a79ddfc3830137363b2c8bf9990fc392800a1ca11f
-- pipeline_name: BCCDC-PHL/mpxv-artic-nf
-  pipeline_version: 0.1.2
+- pipeline_name: BCCDC-PHL/rsv-a-artic-nf
+  pipeline_version: 0.1.3
   timestamp_analysis_start: 2024-10-28T15:44:15.656920-07:00
 
 ```
